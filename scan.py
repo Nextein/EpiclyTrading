@@ -80,7 +80,7 @@ def main():
     tickers = fetch_futures_tickers()
     
     # Define the timeframes to analyze
-    timeframes = ['15m', '30m', '1h', '4h', '1d', '1w']
+    timeframes = ['1h', '4h', '1d', '1w','15m', '30m']
     
     # Create watchlists directory if it doesn't exist
     watchlists_dir = 'watchlists'
