@@ -569,7 +569,31 @@ def linear_regression(series, period):
     
     return series.rolling(window=period).apply(linreg, raw=True)
 
-def Squeeze(self, data, period=20, **args):
+def SMA(data, period):
+    """
+    Calculates the Simple Moving Average (SMA) for a given dataset and period.
+
+    Parameters:
+    data (list or numpy array): The dataset (list of numbers) to calculate the SMA on.
+    period (int): The window size for the moving average.
+
+    Returns:
+    numpy array: An array of SMA values.
+    """
+    data = np.array(data)
+    
+    if period <= 0:
+        raise ValueError("Period must be a positive integer.")
+    
+    if len(data) < period:
+        raise ValueError("Data length must be greater than or equal to the period.")
+    
+    # Use np.convolve to calculate the SMA
+    sma = np.convolve(data, np.ones(period), 'valid') / period
+    
+    return sma
+
+def squeeze(data, period=20, **args):
     """
     Squeeze Indicator from TradingView by LazyBear.
 
@@ -591,7 +615,7 @@ def Squeeze(self, data, period=20, **args):
     lowest_low = data['Low'].rolling(period).min()
     try:
         squeeze = data['Close'] - linear_regression(
-            ((highest_high+lowest_low)/2 + self.SMA(data, period=period))/2,
+            ((highest_high+lowest_low)/2 + SMA(data, period=period))/2,
             period
         )
     except Exception as e:
