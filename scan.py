@@ -80,7 +80,7 @@ def main():
     tickers = fetch_futures_tickers()
     
     # Define the timeframes to analyze
-    timeframes = ['1h', '4h', '1d', '1w','15m', '30m']
+    timeframes = ['1h', '4h', '1d'] # , '1w','15m', '30m']
     
     # Create watchlists directory if it doesn't exist
     watchlists_dir = 'watchlists'
@@ -91,10 +91,13 @@ def main():
         logging.info(f"Analyzing tickers for {timeframe} timeframe...")
         
         for ticker in tickers:
-            data = fetch_data(ticker, timeframe)
-            if data is not None:
-                if evaluate_ticker(ticker, data):
-                    watchlist.append(ticker)
+            try:
+                data = fetch_data(ticker, timeframe)
+                if data is not None:
+                    if evaluate_ticker(ticker, data):
+                        watchlist.append(ticker)
+            except:
+                logging.error(f"Error analyzing {ticker} for {timeframe} timeframe.")
         
         # Generate filename with date, hour, and timeframe
         now = datetime.now()

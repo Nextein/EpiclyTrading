@@ -1,5 +1,3 @@
-# SAMPLE FILe: watchlist_1d_20240925_1330
-
 import logging
 import os
 import pandas as pd
@@ -67,7 +65,9 @@ def plot_price_and_squeeze(ticker, data):
     ax_squeeze.grid(True)
     ax_squeeze.legend()
 
-    plt.show()
+    plt.show(block=False)  # Non-blocking show
+    plt.pause(5)  # Show for 10 seconds
+    plt.close()  # Close the plot after 10 seconds
 
 # Read the watchlist file and fetch historical data for each ticker
 def read_watchlist_and_plot(watchlist_file, interval='1d'):
@@ -86,11 +86,37 @@ def read_watchlist_and_plot(watchlist_file, interval='1d'):
         else:
             logging.warning(f"No valid data for {ticker}.")
 
+import glob  # For file pattern matching
+
 # Main execution
 if __name__ == "__main__":
     # Specify the watchlist file
-    file = input("Enter the watchlist file name: ")
-    watchlist_file = f'watchlists/{file}.txt'
-    read_watchlist_and_plot(watchlist_file, interval='1d')
+    file = input("Enter the watchlist file name (leave blank for last created): ")
+
+    # Default timeframe if no file is specified
+    if file.strip() == "":
+        # Get all watchlist files that match the naming structure
+        files = glob.glob('watchlists/watchlist_*.txt')
+
+        if files:  # If there are any matching files
+            # Sort files by modification time and select the latest
+            latest_file = max(files, key=os.path.getmtime)
+            print(f"Using the last created watchlist file: {latest_file}")
+            watchlist_file = latest_file
+        else:
+            print("No watchlist files found in the directory.")
+            watchlist_file = None  # Set to None or handle accordingly
+    else:
+        watchlist_file = f'watchlists/{file}.txt'
+    
+    # If a valid watchlist file was found, proceed
+    if watchlist_file:
+        interval = input("Enter the timeframe (e.g., '1d', '1h', '15m', default '1d'): ")
+        if not interval.strip():  # If still empty, set a default timeframe
+            interval = '1d'
+        read_watchlist_and_plot(watchlist_file, interval)
+    else:
+        logging.error("No valid watchlist file available.")
 
 logging.info("Script finished.")
+

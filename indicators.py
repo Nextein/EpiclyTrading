@@ -574,53 +574,43 @@ def SMA(data, period):
     Calculates the Simple Moving Average (SMA) for a given dataset and period.
 
     Parameters:
-    data (list or numpy array): The dataset (list of numbers) to calculate the SMA on.
+    data (pd.Series): The dataset to calculate the SMA on (usually close prices).
     period (int): The window size for the moving average.
 
     Returns:
-    numpy array: An array of SMA values.
+    pd.Series: A series of SMA values.
     """
-    data = np.array(data)
-    
-    if period <= 0:
-        raise ValueError("Period must be a positive integer.")
-    
-    if len(data) < period:
-        raise ValueError("Data length must be greater than or equal to the period.")
-    
-    # Use np.convolve to calculate the SMA
-    sma = np.convolve(data, np.ones(period), 'valid') / period
-    
-    return sma
+    return data.rolling(window=period).mean()
 
-def squeeze(data, period=20, **args):
+def squeeze(data, period=20):
     """
     Squeeze Indicator from TradingView by LazyBear.
 
-    source: https://www.tradingview.com/script/nqQ1DT5a-Squeeze-Momentum-Indicator-LazyBear/
+    Parameters:
+    data (pd.DataFrame): OHLCV data with 'High', 'Low', 'Close' columns.
+    period (int): The lookback period for calculating the squeeze indicator.
 
-            val = linreg(data['Close']  -  np.mean(np.mean(data.loc[-lengthKC:,'High'].max(), data.loc[-lengthKC:,'Low']).max(),self.SMA(close,period=lengthKC)), 
-                            lengthKC,0)
-
-    args:
-        data
-        period: Refers to KClength in original tradingview indicator.
-
-    returns:
-        squeeze: pandas DataFrame with 1 column containing values of indicator
+    Returns:
+    pd.Series: A series of squeeze indicator values.
     """
-
-
     highest_high = data['High'].rolling(period).max()
     lowest_low = data['Low'].rolling(period).min()
+    
+    # Ensure the SMA uses the 'Close' prices
+    midline = (highest_high + lowest_low) / 2
+    sma = SMA(data['Close'], period=period)
+    
+    # Ensure all parts are of the same length and no NaNs are present
+    regression_input = (midline + sma) / 2
+    regression_input = regression_input.dropna()
+
     try:
-        squeeze = data['Close'] - linear_regression(
-            ((highest_high+lowest_low)/2 + SMA(data, period=period))/2,
-            period
-        )
+        squeeze = data['Close'] - linear_regression(regression_input, period)
     except Exception as e:
-        # NOTE - Lookback period of data probably not large enough to calculate squeeze.
-        # Returning zeros instead.
-        # Exceptions mainly occur during multiple timeframe backtests
-        squeeze = pd.Series(np.zeros(data.shape[0]))
+        logging.error(f"Squeeze calculation failed for {data.index[-1]}: {e}")
+        squeeze = pd.Series(np.zeros(data.shape[0]), index=data.index)
+    
+    # Handle NaNs that might result from mismatched lengths
+    squeeze = squeeze.reindex(data.index).fillna(0)
+    
     return squeeze
